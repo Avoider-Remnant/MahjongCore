@@ -86,7 +86,7 @@ jobs:
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add "${{ env.current_version }}"
+        git add "${{ env.VERSION_FILE }}"
         git commit -m "Increment version to ${{ env.new_version }}"
         git push
       env:
