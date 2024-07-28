@@ -29,6 +29,7 @@ jobs:
         CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" $VERSION_FILE | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
         echo "Current version: $CURRENT_VERSION"
         echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
+        echo "current_file=$VERSION_FILE" >> $GITHUB_ENV
 
     - name: Increment version
       id: increment_version
@@ -57,10 +58,21 @@ jobs:
         else
           BUILD=$((BUILD + 1))
         fi
+        
         NEW_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
-        sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" $VERSION_FILE
         echo "New version: $NEW_VERSION"
+
+        if [[ -f "$VERSION_FILE" ]]; then
+          echo "File $VERSION_FILE found. Attempting to update version."
+          sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$VERSION_FILE"
+          echo "Version updated successfully."
+        else
+          echo "File $VERSION_FILE not found."
+          exit 1
+        fi
+
         echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+      shell: bash
 
     - name: Commit version increment
       if: env.new_version != env.current_version
