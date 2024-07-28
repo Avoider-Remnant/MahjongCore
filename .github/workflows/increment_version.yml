@@ -20,11 +20,6 @@ jobs:
       with:
         dotnet-version: '6.0.x'
 
-    - name: Debugging - Display csproj content
-      run: |
-        echo "Displaying contents of MahjongCore/MahjongCore.csproj:"
-        cat MahjongCore/MahjongCore.csproj
-
     - name: Get current version
       id: get_version
       run: |
