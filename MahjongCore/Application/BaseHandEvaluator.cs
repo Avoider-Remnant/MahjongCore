@@ -1,6 +1,8 @@
 ﻿namespace MahjongCore.Application;
 
 using Domain.Models;
+using System.Collections.Generic;
+using Domain.Enums;
 
 public class BaseHandEvaluator : IBaseHandEvaluator
 {
@@ -420,7 +422,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsHaitei(GameState state)
     {
-        throw new NotImplementedException();
+        return state.LiveWallCount == 0 && IsHandPartComplete(state.PlayerHand.CloseTiles);
     }
 
     private bool IsPinfu(GameState state)
@@ -428,5 +430,69 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
+    private bool IsHandPartComplete(List<Tile> tiles)
+    {
+        var pairIndexes = FindPairsIndexes(tiles);
+        if (pairIndexes.Count == 0) return false;
+        if (pairIndexes.Count == 7) return true;// all pairs
+
+        List<Tile> remainingTiles = new(tiles.Count);
+        foreach (var pairIndex in pairIndexes)
+        {
+            CopyTilesWithoutPair(tiles, remainingTiles, pairIndex);
+            if (IsAllSets(remainingTiles)) return true;
+            remainingTiles.Clear();
+        }
+        return false;
+    }
+
+    private void CopyTilesWithoutPair(List<Tile> tiles, List<Tile> remainingTiles, int pairIndex)
+    {
+        for (int i = 0; i < tiles.Count; i++)
+        {
+            if (i == pairIndex)
+            {
+                i++;
+                continue;
+            }
+            remainingTiles.Add(tiles[i]);
+        }
+    }
+
+
+    private bool IsAllSets(List<Tile> tiles)
+    {
+        int i = 0;
+        for (; IsTriplet(tiles, i) || IsSequence(tiles, i); i += 3) ;
+        return i == tiles.Count;
+
+    }
+
+    private static bool IsTriplet(List<Tile> tiles, int initialTileIndex)
+    {
+        return tiles[initialTileIndex].TileId == tiles[initialTileIndex + 1].TileId && tiles[initialTileIndex].TileId == tiles[initialTileIndex + 2].TileId;
+    }
+
+    private static bool IsSequence(List<Tile> tiles, int initialTileIndex)
+    {
+        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId && 
+                tiles[initialTileIndex].TileId + 2 == tiles[initialTileIndex + 2].TileId;
+    }
+
+    private static List<int> FindPairsIndexes(List<Tile> tiles)
+    {
+        List<int> pairIndexes = new();
+
+        for (int i = 0; i < tiles.Count - 1; i++)
+        {
+            if (tiles[i].TileId == tiles[i + 1].TileId)
+            {
+                pairIndexes.Add(i);
+                i++;
+            }
+
+        }
+        return pairIndexes;
+    }
     #endregion
 }
