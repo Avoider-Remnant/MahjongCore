@@ -1,6 +1,7 @@
 ﻿namespace MahjongCore.Domain.Models;
 
 using Enums;
+using System;
 
 public class Tile
 {
@@ -12,6 +13,7 @@ public class Tile
 
     public byte DoraValue { get; set; }
 
+    public bool IsHonor => Suit > SuitType.Wind;
 
     public Tile(SuitType suit, byte value, byte doraValue)
     {
