@@ -422,7 +422,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsHaitei(GameState state)
     {
-        return state.LiveWallCount == 0 && IsCompleteHandPart(state.PlayerHand.CloseTiles);
+        return state.LiveWallCount == 0 && IsHandPartComplete(state.PlayerHand.CloseTiles);
     }
 
     private bool IsPinfu(GameState state)
@@ -430,13 +430,13 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsCompleteHandPart (List<Tile> tiles)
+    private bool IsHandPartComplete(List<Tile> tiles)
     {
         var pairIndexes = FindPairsIndexes(tiles);
         if (pairIndexes.Count == 0) return false;
         if (pairIndexes.Count == 7) return true;// all pairs
 
-        List<Tile> remainingTiles = new (tiles.Count);
+        List<Tile> remainingTiles = new(tiles.Count);
         foreach (var pairIndex in pairIndexes)
         {
             CopyTilesWithoutPair(tiles, remainingTiles, pairIndex);
@@ -446,7 +446,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         return false;
     }
 
-    private void CopyTilesWithoutPair (List<Tile> tiles, List<Tile> remainingTiles, int pairIndex)
+    private void CopyTilesWithoutPair(List<Tile> tiles, List<Tile> remainingTiles, int pairIndex)
     {
         for (int i = 0; i < tiles.Count; i++)
         {
@@ -468,21 +468,22 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     }
 
-    private static bool IsTriplet(List<Tile> tiles , int initialTileIndex)
+    private static bool IsTriplet(List<Tile> tiles, int initialTileIndex)
     {
         return tiles[initialTileIndex].TileId == tiles[initialTileIndex + 1].TileId && tiles[initialTileIndex].TileId == tiles[initialTileIndex + 2].TileId;
     }
 
     private static bool IsSequence(List<Tile> tiles, int initialTileIndex)
     {
-        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId && tiles[initialTileIndex].TileId + 2 == tiles[initialTileIndex + 2].TileId;
+        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId && 
+                tiles[initialTileIndex].TileId + 2 == tiles[initialTileIndex + 2].TileId;
     }
 
     private static List<int> FindPairsIndexes(List<Tile> tiles)
     {
-        List<int> pairIndexes = new ();
+        List<int> pairIndexes = new();
 
-        for (int i = 0; i < tiles.Count -1; i++)
+        for (int i = 0; i < tiles.Count - 1; i++)
         {
             if (tiles[i].TileId == tiles[i + 1].TileId)
             {
