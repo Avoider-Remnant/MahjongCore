@@ -1,0 +1,79 @@
+name: Auto Increment Version
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches:
+      - '**'
+
+jobs:
+  increment-version:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+
+    - name: Get current version
+      id: get_version
+      run: |
+        VERSION_FILE="MyProject/MyProject.csproj"
+        VERSION_REGEX='<Version>([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)<\/Version>'
+        CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" $VERSION_FILE | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
+        echo "Current version: $CURRENT_VERSION"
+        echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
+
+    - name: Increment version
+      id: increment_version
+      run: |
+        VERSION_PARTS=(${GITHUB_ENV[current_version]//./ })
+        MAJOR=${VERSION_PARTS[0]}
+        FEATURE=${VERSION_PARTS[1]}
+        BUG=${VERSION_PARTS[2]}
+        BUILD=${VERSION_PARTS[3]}
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if [[ "$PR_TITLE" == *"[major]"* ]]; then
+            MAJOR=$((MAJOR + 1))
+            FEATURE=0
+            BUG=0
+            BUILD=0
+          elif [[ "$PR_TITLE" == *"[feature]"* ]]; then
+            FEATURE=$((FEATURE + 1))
+            BUG=0
+            BUILD=0
+          elif [[ "$PR_TITLE" == *"[bug]"* ]]; then
+            BUG=$((BUG + 1))
+            BUILD=0
+          fi
+        else
+          BUILD=$((BUILD + 1))
+        fi
+        NEW_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
+        sed -i "s/<Version>${GITHUB_ENV[current_version]}<\/Version>/<Version>${NEW_VERSION}<\/Version>/" $VERSION_FILE
+        echo "New version: $NEW_VERSION"
+        echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
+    - name: Commit version increment
+      if: steps.increment_version.outputs.new_version != ${{ github.env.current_version }}
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
+        git add MyProject/MyProject.csproj
+        git commit -m "Increment version to ${{ steps.increment_version.outputs.new_version }}"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish package
+      if: github.event_name == 'push'
+      run: |
+        dotnet publish -c Release -o out
+        dotnet pack -c Release -o out
