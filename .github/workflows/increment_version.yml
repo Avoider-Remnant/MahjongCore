@@ -23,7 +23,7 @@ jobs:
     - name: Get current version
       id: get_version
       run: |
-        VERSION_FILE="MahjongCore/MahjongCore.csproj"
+        VERSION_FILE="src/MahjongCore/MahjongCore.csproj"
         VERSION_REGEX='<Version>([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9A-Fa-f]+)<\/Version>'
         if grep -qP "$VERSION_REGEX" "$VERSION_FILE"; then
           CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" "$VERSION_FILE" | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
