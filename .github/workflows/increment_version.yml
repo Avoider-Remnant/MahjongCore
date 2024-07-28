@@ -9,7 +9,6 @@ on:
 
 jobs:
   increment-version:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
@@ -24,22 +23,31 @@ jobs:
     - name: Get current version
       id: get_version
       run: |
-        VERSION_FILE="MyProject/MyProject.csproj"
+        VERSION_FILE="MahjongCore/MahjongCore.csproj"
         VERSION_REGEX='<Version>([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)<\/Version>'
-        CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" $VERSION_FILE | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
-        echo "Current version: $CURRENT_VERSION"
-        echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
+        if grep -qP "$VERSION_REGEX" $VERSION_FILE; then
+          CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" $VERSION_FILE | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
+          echo "Current version: $CURRENT_VERSION"
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
+        else
+          echo "Version tag not found in $VERSION_FILE"
+          exit 1
+        fi
+      shell: bash
 
     - name: Increment version
-      id: increment_version
       run: |
-        VERSION_PARTS=(${GITHUB_ENV[current_version]//./ })
+        CURRENT_VERSION="${{ env.current_version }}"
+        echo "Current version from env: $CURRENT_VERSION"
+        IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
         MAJOR=${VERSION_PARTS[0]}
         FEATURE=${VERSION_PARTS[1]}
         BUG=${VERSION_PARTS[2]}
         BUILD=${VERSION_PARTS[3]}
+
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR title: $PR_TITLE"
           if [[ "$PR_TITLE" == *"[major]"* ]]; then
             MAJOR=$((MAJOR + 1))
             FEATURE=0
@@ -56,24 +64,21 @@ jobs:
         else
           BUILD=$((BUILD + 1))
         fi
+
         NEW_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
-        sed -i "s/<Version>${GITHUB_ENV[current_version]}<\/Version>/<Version>${NEW_VERSION}<\/Version>/" $VERSION_FILE
         echo "New version: $NEW_VERSION"
+        sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" $VERSION_FILE
         echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+      shell: bash
 
     - name: Commit version increment
-      if: steps.increment_version.outputs.new_version != ${{ github.env.current_version }}
+      if: steps.increment_version.outputs.new_version != env.current_version
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add MyProject/MyProject.csproj
+        git add MahjongCore/MahjongCore.csproj
         git commit -m "Increment version to ${{ steps.increment_version.outputs.new_version }}"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Publish package
-      if: github.event_name == 'push'
-      run: |
-        dotnet publish -c Release -o out
-        dotnet pack -c Release -o out
+      shell: bash
