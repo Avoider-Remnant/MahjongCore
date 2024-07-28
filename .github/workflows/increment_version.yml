@@ -23,7 +23,7 @@ jobs:
     - name: Get current version
       id: get_version
       run: |
-        VERSION_FILE="MahjongCore/MahjongCore.csproj"
+        VERSION_FILE="src/MahjongCore/MahjongCore.csproj"
         VERSION_REGEX='<Version>([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)<\/Version>'
         if grep -qP "$VERSION_REGEX" "$VERSION_FILE"; then
           CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" "$VERSION_FILE" | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
@@ -91,7 +91,7 @@ jobs:
       run: |
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
-        git add MahjongCore/MahjongCore.csproj
+        git add "${{ env.VERSION_FILE }}"
         git commit -m "Increment version to ${{ steps.increment_version.outputs.new_version }}"
         git push
       env:
