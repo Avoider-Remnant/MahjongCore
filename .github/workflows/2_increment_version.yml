@@ -41,13 +41,11 @@ jobs:
       run: |
         CURRENT_VERSION="${{ env.current_version }}"
         VERSION_FILE="${{ env.VERSION_FILE }}"
-        COMMIT_SHA="${{ github.sha }}"
         echo "Current version from env: $CURRENT_VERSION"
         IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
         MAJOR=${VERSION_PARTS[0]}
         FEATURE=${VERSION_PARTS[1]}
         BUG=${VERSION_PARTS[2]}
-        BUILD=${COMMIT_SHA:0:7}  # Use the first 7 characters of the commit SHA
 
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           PR_TITLE="${{ github.event.pull_request.title }}"
@@ -56,14 +54,11 @@ jobs:
             MAJOR=$((MAJOR + 1))
             FEATURE=0
             BUG=0
-            BUILD=0
           elif echo "$PR_TITLE" | grep -iq "\[feature\]"; then
             FEATURE=$((FEATURE + 1))
             BUG=0
-            BUILD=0
           elif echo "$PR_TITLE" | grep -iq "\[bug\]"; then
             BUG=$((BUG + 1))
-            BUILD=0
           fi
         fi
 
