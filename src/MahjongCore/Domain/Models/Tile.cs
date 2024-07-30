@@ -16,6 +16,8 @@ public class Tile
     public bool IsHonor => Suit > SuitType.Wind;
     public bool IsTerminal => Value == 1 || Value == 9 || IsHonor;
 
+    public bool IsDragon => Suit > SuitType.Dragon;
+
     public Tile(SuitType suit, byte value, byte doraValue)
     {
         Suit = suit;
