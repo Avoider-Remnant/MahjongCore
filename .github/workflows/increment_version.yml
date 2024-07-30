@@ -2,7 +2,7 @@ name: Auto Increment Version
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [submitted]
   push:
     branches:
       - '**'
@@ -49,18 +49,21 @@ jobs:
         BUG=${VERSION_PARTS[2]}
         BUILD=${COMMIT_SHA:0:7}  # Use the first 7 characters of the commit SHA
 
-        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+      if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR title: $PR_TITLE"
-          if [[ "$PR_TITLE" == *"[major]"* ]]; then
+          if echo "$PR_TITLE" | grep -iq "\[major\]"; then
             MAJOR=$((MAJOR + 1))
             FEATURE=0
             BUG=0
-          elif [[ "$PR_TITLE" == *"[feature]"* ]]; then
+            BUILD=0
+          elif echo "$PR_TITLE" | grep -iq "\[feature\]"; then
             FEATURE=$((FEATURE + 1))
             BUG=0
-          elif [[ "$PR_TITLE" == *"[bug]"* ]]; then
+            BUILD=0
+          elif echo "$PR_TITLE" | grep -iq "\[bug\]"; then
             BUG=$((BUG + 1))
+            BUILD=0
           fi
         fi
 
