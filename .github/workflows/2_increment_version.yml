@@ -1,5 +1,4 @@
-name: Auto Increment Version
-
+name: Workflow_2 - Increase App Version oktets on pull request
 on:
   pull_request:
     types: [submitted]
@@ -65,7 +64,7 @@ jobs:
 
         NEW_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
         echo "New version: $NEW_VERSION"
-
+        
         if [[ -f "$VERSION_FILE" ]]; then
           echo "File $VERSION_FILE found. Attempting to update version."
           sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$VERSION_FILE"
@@ -83,6 +82,8 @@ jobs:
 
     - name: Commit version increment
       run: |
+        if("${{ env.current_version }}" == "${{ env.VERSION_FILE }}")
+          exit 0
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
         git add "${{ env.VERSION_FILE }}"
