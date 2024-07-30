@@ -63,8 +63,11 @@ jobs:
         fi
 
         NEW_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
+        echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
         echo "New version: $NEW_VERSION"
-        
+        if[["${{ env.current_version }}" == NEW_VERSION]]
+            exit 0
         if [[ -f "$VERSION_FILE" ]]; then
           echo "File $VERSION_FILE found. Attempting to update version."
           sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$VERSION_FILE"
@@ -82,7 +85,7 @@ jobs:
 
     - name: Commit version increment
       run: |
-        if("${{ env.current_version }}" == "${{ env.VERSION_FILE }}")
+        if("${{ env.current_version }}" == "${{ env.new_version }}")
           exit 0
         git config --global user.name 'github-actions'
         git config --global user.email 'github-actions@github.com'
