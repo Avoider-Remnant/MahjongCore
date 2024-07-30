@@ -1,0 +1,55 @@
+name: Workflow_1 - Increase App Version 4s oktet on Push
+
+on:
+  push:
+    branches-ignore:
+      - master            # This will ignore pushes to the master branch
+  workflow_dispatch:      # This allows you to manually trigger the workflow.
+
+jobs:
+  increment-version-and-update-csproj:
+    runs-on: self-hosted
+    env:
+      CSPROJ_PATH: ./src/MahjongCore/MahjongCore.csproj
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Sleep 20 sec
+        id: sleep
+        run: sleep 20
+
+      - name: Extract current App Version
+        id: get_version
+        run: |
+          APP_VERSION=$(awk -F '[<>]' '/<Version>/{print $3}' $CSPROJ_PATH) # Use the variable
+          echo "Current Version: $APP_VERSION"
+          echo "::set-output name=APP_VERSION::$APP_VERSION"
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
+
+      - name: Increment App Version
+        id: increment_version
+        run: |
+          IFS='.' read -ra VERSION_ARRAY <<< "${{ steps.get_version.outputs.APP_VERSION }}"
+          BUILD_NUMBER=$((${VERSION_ARRAY[-1]} + 1))
+          VERSION_ARRAY[-1]=$BUILD_NUMBER
+          INCREMENTED_APP_VERSION="${VERSION_ARRAY[*]}"
+          INCREMENTED_APP_VERSION=${INCREMENTED_APP_VERSION// /'.'}
+          echo "New Incremented Application Version: $INCREMENTED_APP_VERSION"
+          echo "::set-output name=INCREMENTED_APP_VERSION::$INCREMENTED_APP_VERSION"
+          echo "INCREMENTED_APP_VERSION=$INCREMENTED_APP_VERSION" >> $GITHUB_ENV
+
+      - name: Update .csproj file with new App Version
+        run: |
+          awk -v newver=${{ env.INCREMENTED_APP_VERSION }} '/<Version>/{gsub(/>[^<]+</, ">" newver "<")}1' $CSPROJ_PATH > temp.csproj
+          mv temp.csproj $CSPROJ_PATH
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add $CSPROJ_PATH
+          git commit -m "Incremented App Version from ${{ env.APP_VERSION }} to ${{ env.INCREMENTED_APP_VERSION }}"
+          git push origin HEAD:${{ github.ref }}
