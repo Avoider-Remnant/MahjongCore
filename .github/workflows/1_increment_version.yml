@@ -7,19 +7,15 @@ on:
   workflow_dispatch:      # This allows you to manually trigger the workflow.
 
 jobs:
-  increment-version-and-update-csproj:
-    runs-on: self-hosted
+  increment-version:
+    runs-on: ubuntu-latest
     env:
       CSPROJ_PATH: ./src/MahjongCore/MahjongCore.csproj
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
         with:
           fetch-depth: 0
-
-      - name: Sleep 20 sec
-        id: sleep
-        run: sleep 20
 
       - name: Extract current App Version
         id: get_version
