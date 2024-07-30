@@ -1,8 +1,7 @@
 name: Workflow_2 - Increase App Version oktets on pull request
 on:
-  pull_request:
+  pull_request_review:
     types: [submitted]
-  push:
     branches:
       - master
 
