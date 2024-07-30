@@ -416,7 +416,18 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsYakuhai(GameState state)
     {
-        throw new NotImplementedException();
+        //A hand with at least one group of dragon tiles, seat wind, or round wind tiles. Each group is worth 1 han.
+        bool isNeededHonor = false;
+        foreach (Tile tile in state.PlayerHand.AllTiles)
+        {
+            if (tile.TileId == state.SeatWindId || tile.TileId == state.RoundWindId || tile.IsDragon)
+            {
+                isNeededHonor = true;
+                break;
+            }
+        }
+        if (isNeededHonor) return IsHandPartComplete(state.PlayerHand.CloseTiles);
+        else return false;
     }
 
     private bool IsTanyao(GameState state)

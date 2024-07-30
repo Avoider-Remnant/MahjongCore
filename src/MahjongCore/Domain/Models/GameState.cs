@@ -7,4 +7,8 @@ public class GameState
     public int timeFromLastCall { get; set; }
 
     public int LiveWallCount { get; set; }
+
+    public int SeatWindId { get; set; }
+
+    public int RoundWindId { get; set; }
 }
