@@ -49,7 +49,7 @@ jobs:
         BUG=${VERSION_PARTS[2]}
         BUILD=${COMMIT_SHA:0:7}  # Use the first 7 characters of the commit SHA
 
-      if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           PR_TITLE="${{ github.event.pull_request.title }}"
           echo "PR title: $PR_TITLE"
           if echo "$PR_TITLE" | grep -iq "\[major\]"; then
