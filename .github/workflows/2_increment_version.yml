@@ -24,9 +24,9 @@ jobs:
         VERSION_FILE="src/MahjongCore/MahjongCore.csproj"
         VERSION_REGEX='<Version>([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9A-Fa-f]+)<\/Version>'
         if grep -qP "$VERSION_REGEX" "$VERSION_FILE"; then
-          CURRENT_VERSION=$(grep -oP "$VERSION_REGEX" "$VERSION_FILE" | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
-          echo "Current version: $CURRENT_VERSION"
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_ENV
+          APP_VERSION=$(grep -oP "$VERSION_REGEX" "$VERSION_FILE" | sed -E "s/$VERSION_REGEX/\1.\2.\3.\4/")
+          echo "Current version: $APP_VERSION"
+          echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
           echo "VERSION_FILE=$VERSION_FILE" >> $GITHUB_ENV
         else
           echo "Version tag not found in $VERSION_FILE with regex $VERSION_REGEX"
@@ -37,10 +37,10 @@ jobs:
     - name: Increment version
       id: increment_version
       run: |
-        CURRENT_VERSION="${{ env.current_version }}"
+        APP_VERSION="${{ env.APP_VERSION }}"
         VERSION_FILE="${{ env.VERSION_FILE }}"
-        echo "Current version from env: $CURRENT_VERSION"
-        IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+        echo "Current version from env: $APP_VERSION"
+        IFS='.' read -r -a VERSION_PARTS <<< "$APP_VERSION"
         MAJOR=${VERSION_PARTS[0]}
         FEATURE=${VERSION_PARTS[1]}
         BUG=${VERSION_PARTS[2]}
@@ -61,41 +61,40 @@ jobs:
           fi
         fi
 
-        NEW_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
-        echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+        INCREMENTED_APP_VERSION="$MAJOR.$FEATURE.$BUG.$BUILD"
+        echo "INCREMENTED_APP_VERSION=$INCREMENTED_APP_VERSION" >> $GITHUB_ENV
 
-        echo "New version: $NEW_VERSION"
+        echo "New version: $INCREMENTED_APP_VERSION"
 
-        if [[ "${{ env.current_version }}" == $NEW_VERSION ]]; then
+        if [[ "${{ env.APP_VERSION }}" == $INCREMENTED_APP_VERSION ]]; then
             exit 0
         fi
         
         if [[ -f "$VERSION_FILE" ]]; then
           echo "File $VERSION_FILE found. Attempting to update version."
-          sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$VERSION_FILE"
+          sed -i "s/<Version>$APP_VERSION<\/Version>/<Version>$INCREMENTED_APP_VERSION<\/Version>/" "$VERSION_FILE"
           echo "Version updated successfully."
         else
           echo "File $VERSION_FILE not found."
           exit 1
         fi
 
-        echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+        echo "INCREMENTED_APP_VERSION=$INCREMENTED_APP_VERSION" >> $GITHUB_ENV
       shell: bash
       env:
         VERSION_FILE: ${{ env.VERSION_FILE }}
-        current_version: ${{ env.current_version }}
+        APP_VERSION: ${{ env.APP_VERSION }}
 
     - name: Commit version increment
       run: |
-        if [[ "${{ env.current_version }}" == "${{ env.new_version }}" ]]; then
-        
+        if [[ "${{ env.APP_VERSION }}" == "${{ env.INCREMENTED_APP_VERSION }}" ]]; then
             exit 0
         fi
 
         git config --local user.name 'github-actions'
         git config --local user.email 'github-actions@github.com'
         git add "${{ env.VERSION_FILE }}"
-        git commit -m "Increment version to ${{ env.new_version }}"
+        git commit -m "Incremented App Version from ${{ env.APP_VERSION }} to ${{ env.INCREMENTED_APP_VERSION }}"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
