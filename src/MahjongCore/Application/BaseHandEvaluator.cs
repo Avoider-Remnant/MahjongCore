@@ -402,7 +402,12 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsTanyao(GameState state)
     {
-        throw new NotImplementedException();
+        //A hand composed of only tiles that are numbered from 2 - 8. (In other words, a hand with no 1's, 9's, or honors.)
+        foreach (Tile tile in state.PlayerHand.AllTiles)
+        {
+            if (tile.IsTerminal) return false;
+        }
+        return IsHandPartComplete(state.PlayerHand.CloseTiles);
     }
 
     private bool IsChanKan(GameState state)
@@ -475,7 +480,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private static bool IsSequence(List<Tile> tiles, int initialTileIndex)
     {
-        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId && 
+        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId &&
                 tiles[initialTileIndex].TileId + 2 == tiles[initialTileIndex + 2].TileId;
     }
 
