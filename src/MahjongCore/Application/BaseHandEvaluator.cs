@@ -21,7 +21,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         {
             result.Add(new Yaku { Name = "Haitei", Han = 1 });
         }
-        else if (IsHoitei(state))
+        else if (IsHoutei(state))
         {
             result.Add(new Yaku { Name = "Hoitei", Han = 1 });
         }
@@ -377,7 +377,26 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsToiToi(GameState state)
     {
-        throw new NotImplementedException();
+        // The entire hand is composed of triplets.
+        for (int i = 0; i < state.PlayerHand.OpenTiles.Count; i += 3)
+        {
+            if (!IsTriplet(state.PlayerHand.OpenTiles, i)) return false;
+        }
+        bool isPairFound = false;
+        for (int i = 0; i < state.PlayerHand.CloseTiles.Count;)
+        {
+            if (IsTriplet(state.PlayerHand.OpenTiles, i))
+            {
+                i += 3;
+            }
+            else if (!isPairFound && IsPair(state.PlayerHand.OpenTiles, i))
+            {
+                i += 2;
+                isPairFound = true;
+            }
+            else return false;
+        }
+        return true;
     }
 
     private bool IsIttsu(GameState state)
@@ -412,17 +431,20 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsRinshanKaihou(GameState state)
     {
+        // Win with a tile from the dead wall - i.e., win by the tile drawn after a kan.
         throw new NotImplementedException();
     }
 
-    private bool IsHoitei(GameState state)
+    private bool IsHoutei(GameState state)
     {
-        throw new NotImplementedException();
+        // Win with the very last discarded tile.
+        return state.LiveWallCount == 0 && state.timeFromLastCall == 0 && IsHandPartComplete(state.PlayerHand.CloseTiles);
     }
 
     private bool IsHaitei(GameState state)
     {
-        return state.LiveWallCount == 0 && IsHandPartComplete(state.PlayerHand.CloseTiles);
+        // Win by drawing the last tile from the live wall.
+        return state.LiveWallCount == 0 && state.timeFromLastCall > 1 && IsHandPartComplete(state.PlayerHand.CloseTiles);
     }
 
     private bool IsPinfu(GameState state)
@@ -434,7 +456,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
     {
         var pairIndexes = FindPairsIndexes(tiles);
         if (pairIndexes.Count == 0) return false;
-        if (pairIndexes.Count == 7) return true;// all pairs
+        if (pairIndexes.Count == 7 || tiles.Count == 2) return true;// all pairs or tiles list is only one pair
 
         List<Tile> remainingTiles = new(tiles.Count);
         foreach (var pairIndex in pairIndexes)
@@ -463,9 +485,14 @@ public class BaseHandEvaluator : IBaseHandEvaluator
     private bool IsAllSets(List<Tile> tiles)
     {
         int i = 0;
-        for (; IsTriplet(tiles, i) || IsSequence(tiles, i); i += 3) ;
+        for (; (IsTriplet(tiles, i) || IsSequence(tiles, i)) && i < tiles.Count; i += 3) ;
         return i == tiles.Count;
 
+    }
+
+    private static bool IsPair(List<Tile> tiles, int initialTileIndex)
+    {
+        return tiles[initialTileIndex].TileId == tiles[initialTileIndex + 1].TileId;
     }
 
     private static bool IsTriplet(List<Tile> tiles, int initialTileIndex)
@@ -475,7 +502,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private static bool IsSequence(List<Tile> tiles, int initialTileIndex)
     {
-        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId && 
+        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId &&
                 tiles[initialTileIndex].TileId + 2 == tiles[initialTileIndex + 2].TileId;
     }
 
@@ -485,7 +512,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
         for (int i = 0; i < tiles.Count - 1; i++)
         {
-            if (tiles[i].TileId == tiles[i + 1].TileId)
+            if (IsPair(tiles, i))
             {
                 pairIndexes.Add(i);
                 i++;
