@@ -68,6 +68,8 @@ jobs:
         echo "New version: $NEW_VERSION"
         if[["${{ env.current_version }}" == $NEW_VERSION]]; then
             exit 0
+        fi
+        
         if [[ -f "$VERSION_FILE" ]]; then
           echo "File $VERSION_FILE found. Attempting to update version."
           sed -i "s/<Version>$CURRENT_VERSION<\/Version>/<Version>$NEW_VERSION<\/Version>/" "$VERSION_FILE"
@@ -87,8 +89,10 @@ jobs:
       run: |
         if[["${{ env.current_version }}" == "${{ env.new_version }}"]]; then
           exit 0
-        git config --global user.name 'github-actions'
-        git config --global user.email 'github-actions@github.com'
+        fi
+
+        git config --local user.name 'github-actions'
+        git config --local user.email 'github-actions@github.com'
         git add "${{ env.VERSION_FILE }}"
         git commit -m "Increment version to ${{ env.new_version }}"
         git push
