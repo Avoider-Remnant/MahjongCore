@@ -46,6 +46,7 @@ jobs:
         MAJOR=${VERSION_PARTS[0]}
         FEATURE=${VERSION_PARTS[1]}
         BUG=${VERSION_PARTS[2]}
+        BUILD=${VERSION_PARTS[3]}
 
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           PR_TITLE="${{ github.event.pull_request.title }}"
