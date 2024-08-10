@@ -3,12 +3,13 @@
 using Domain.Models;
 using System.Collections.Generic;
 using Domain.Enums;
+using System.Security.Cryptography;
 
 public class BaseHandEvaluator : IBaseHandEvaluator
 {
     #region Interface
 
-    public List<Yaku> Run(GameState state)
+    public List<Yaku> Run(List<Combination> combinations, GameState state)
     {
         var result = new List<Yaku>();
 
@@ -17,11 +18,11 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         // var isBonusForClosedHand = false;
         //check for open yaku
 
-        if (IsHaitei(state))
+        if (IsHaitei(combinations, state))
         {
             result.Add(new Yaku { Name = "Haitei", Han = 1 });
         }
-        else if (IsHoutei(state))
+        else if (IsHoutei(combinations,state))
         {
             result.Add(new Yaku { Name = "Hoitei", Han = 1 });
         }
@@ -35,12 +36,12 @@ public class BaseHandEvaluator : IBaseHandEvaluator
             result.Add(new Yaku { Name = "ChanKan", Han = 1 });
         }
 
-        if (IsTanyao(state))
+        if (IsTanyao(combinations, state))
         {
             result.Add(new Yaku { Name = "Tanyao", Han = 1 });
         }
 
-        if (IsYakuhai(state))
+        if (IsYakuhai(combinations, state))
         {
             result.Add(new Yaku { Name = "Yakuhai", Han = 1 });
         }
@@ -60,7 +61,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
             result.Add(new Yaku { Name = "Ittsu", Han = 2 });
         }
 
-        if (IsToiToi(state))
+        if (IsToiToi(combinations,state))
         {
             result.Add(new Yaku { Name = "ToiToi", Han = 2 });
         }
@@ -375,28 +376,21 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsToiToi(GameState state)
+    private bool IsToiToi(List<Combination> combinations, GameState state)
     {
         // The entire hand is composed of triplets.
-        for (int i = 0; i < state.PlayerHand.OpenTiles.Count; i += 3)
+        int pairs = 0;
+        int triplets = 0;
+        foreach (Combination comb in combinations)
         {
-            if (!IsTriplet(state.PlayerHand.OpenTiles, i)) return false;
+            if (comb.Type == CombinationType.Triplet)
+                triplets++;
+            else if (comb.Type == CombinationType.Pair)
+                pairs++;
+            else break;
         }
-        bool isPairFound = false;
-        for (int i = 0; i < state.PlayerHand.CloseTiles.Count;)
-        {
-            if (IsTriplet(state.PlayerHand.OpenTiles, i))
-            {
-                i += 3;
-            }
-            else if (!isPairFound && IsPair(state.PlayerHand.OpenTiles, i))
-            {
-                i += 2;
-                isPairFound = true;
-            }
-            else return false;
-        }
-        return true;
+
+        return pairs == 1 && triplets == 4;
     }
 
     private bool IsIttsu(GameState state)
@@ -414,7 +408,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsYakuhai(GameState state)
+    private bool IsYakuhai(List<Combination> combinations, GameState state)
     {
         //A hand with at least one group of dragon tiles, seat wind, or round wind tiles. Each group is worth 1 han.
         bool isNeededHonor = false;
@@ -426,18 +420,19 @@ public class BaseHandEvaluator : IBaseHandEvaluator
                 break;
             }
         }
-        if (isNeededHonor) return IsHandPartComplete(state.PlayerHand.CloseTiles);
-        else return false;
+
+        return isNeededHonor && IsHandComplete(combinations);
     }
 
-    private bool IsTanyao(GameState state)
+    private bool IsTanyao(List<Combination> combinations, GameState state)
     {
         //A hand composed of only tiles that are numbered from 2 - 8. (In other words, a hand with no 1's, 9's, or honors.)
         foreach (Tile tile in state.PlayerHand.AllTiles)
         {
             if (tile.IsTerminal) return false;
         }
-        return IsHandPartComplete(state.PlayerHand.CloseTiles);
+
+        return IsHandComplete(combinations);
     }
 
     private bool IsChanKan(GameState state)
@@ -451,16 +446,16 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsHoutei(GameState state)
+    private bool IsHoutei(List<Combination> combinations, GameState state)
     {
         // Win with the very last discarded tile.
-        return state.LiveWallCount == 0 && state.timeFromLastCall == 0 && IsHandPartComplete(state.PlayerHand.CloseTiles);
+        return state.LiveWallCount == 0 && state.timeFromLastCall == 0 && IsHandComplete(combinations);
     }
 
-    private bool IsHaitei(GameState state)
+    private bool IsHaitei(List<Combination> combinations, GameState state)
     {
         // Win by drawing the last tile from the live wall.
-        return state.LiveWallCount == 0 && state.timeFromLastCall > 1 && IsHandPartComplete(state.PlayerHand.CloseTiles);
+        return state.LiveWallCount == 0 && state.timeFromLastCall > 1 && IsHandComplete(combinations);
     }
 
     private bool IsPinfu(GameState state)
@@ -468,20 +463,20 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsHandPartComplete(List<Tile> tiles)
+    private bool IsHandComplete(List<Combination> combinations)
     {
-        var pairIndexes = FindPairsIndexes(tiles);
-        if (pairIndexes.Count == 0) return false;
-        if (pairIndexes.Count == 7 || tiles.Count == 2) return true;// all pairs or tiles list is only one pair
-
-        List<Tile> remainingTiles = new(tiles.Count);
-        foreach (var pairIndex in pairIndexes)
+        int pairs = 0;
+        int triplets = 0;
+        foreach (Combination comb in combinations)
         {
-            CopyTilesWithoutPair(tiles, remainingTiles, pairIndex);
-            if (IsAllSets(remainingTiles)) return true;
-            remainingTiles.Clear();
+            if (comb.Type == CombinationType.Triplet || comb.Type == CombinationType.Sequence)
+                triplets++;
+            else if (comb.Type == CombinationType.Pair)
+                pairs++;
+            else break;
         }
-        return false;
+
+        return pairs == 1 && triplets == 4;
     }
 
     private void CopyTilesWithoutPair(List<Tile> tiles, List<Tile> remainingTiles, int pairIndex)
@@ -497,45 +492,5 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         }
     }
 
-
-    private bool IsAllSets(List<Tile> tiles)
-    {
-        int i = 0;
-        for (; (IsTriplet(tiles, i) || IsSequence(tiles, i)) && i < tiles.Count; i += 3) ;
-        return i == tiles.Count;
-
-    }
-
-    private static bool IsPair(List<Tile> tiles, int initialTileIndex)
-    {
-        return tiles[initialTileIndex].TileId == tiles[initialTileIndex + 1].TileId;
-    }
-
-    private static bool IsTriplet(List<Tile> tiles, int initialTileIndex)
-    {
-        return tiles[initialTileIndex].TileId == tiles[initialTileIndex + 1].TileId && tiles[initialTileIndex].TileId == tiles[initialTileIndex + 2].TileId;
-    }
-
-    private static bool IsSequence(List<Tile> tiles, int initialTileIndex)
-    {
-        return !tiles[initialTileIndex].IsHonor && tiles[initialTileIndex].TileId + 1 == tiles[initialTileIndex + 1].TileId &&
-                tiles[initialTileIndex].TileId + 2 == tiles[initialTileIndex + 2].TileId;
-    }
-
-    private static List<int> FindPairsIndexes(List<Tile> tiles)
-    {
-        List<int> pairIndexes = new();
-
-        for (int i = 0; i < tiles.Count - 1; i++)
-        {
-            if (IsPair(tiles, i))
-            {
-                pairIndexes.Add(i);
-                i++;
-            }
-
-        }
-        return pairIndexes;
-    }
     #endregion
 }
