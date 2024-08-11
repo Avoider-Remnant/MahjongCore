@@ -32,10 +32,4 @@ public class Combination
         InitialTile = initialTile;
         IsOpenHand = isOpenHand;
     }
-
-    internal void Clear()
-    {
-        //todo
-        throw new NotImplementedException();
-    }
 }

@@ -2,16 +2,16 @@
 
 using Domain.Models;
 
-public static class TileListExtentions
+public static class TileArrExtentions
 {
     public static void TakeNonAlloc(
-        this List<Tile> original,
+        this Tile[] original,
         Tile[] result,
         int skipFromIndex,
         int skippedСount)
     {
         var j = 0;
-        for (var i = 0; i < original.Count; i++)
+        for (var i = 0; i < original.Length && original[i] != null; i++)
         {
             if (i == skipFromIndex)
             {
@@ -25,13 +25,13 @@ public static class TileListExtentions
     }
 
     public static void TakeNonAlloc(
-        this List<Tile> original,
+        this Tile[] original,
         Tile[] result,
         int[] skipedIndexs)
     {
         var k = 0;
         var j = 0;
-        for (var i = 0; i < original.Count; i++)
+        for (var i = 0; i < original.Length && original[i] != null; i++)
         {
             if (i == skipedIndexs[k])
             {

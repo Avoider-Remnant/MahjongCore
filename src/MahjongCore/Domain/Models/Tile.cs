@@ -14,7 +14,7 @@ public class Tile
     public byte DoraValue { get; set; }
 
     public bool IsHonor => Suit > SuitType.Wind;
-    public bool IsTerminal => Value == 1 || Value == 9 || IsHonor;
+    public bool IsTerminal => Value == 1 || Value == 9;
 
     public bool IsDragon => Suit > SuitType.Dragon;
 

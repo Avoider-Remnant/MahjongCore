@@ -21,24 +21,19 @@ internal class HandDivider
         var currentPair = new Combination();
         var pairsIndexes = FindPairsIndexes(playerHand.CloseTiles);
 
-        // TODO class field insted of using "out" 
         if (pairsIndexes.Count == 0) return;
         if (pairsIndexes.Count == 7)
         {
             // only one yaku separate metod
-            //Combination[] allPairs = new Combination[7];
-            //foreach (int pairIndex in pairsIndexes)
-            //   allPairs[pairIndex] = new Combination(CombinationType.Pair, playerHand.CloseTiles[pairIndex], false);
-            //CheckHand(allPairs, playerHand);
             return;
         }
 
-        var handState = new List<Tile>[4]; // use arr
+        var handState = new Tile[4][];
         var combinations = new Combination[4];
         var escapeDepthLevel = playerHand.CloseTiles.Count / 3;
         for (var i = 0; i < 4; i++)
         {
-            handState[i] = new List<Tile>();
+            handState[i] = new Tile[12];
             combinations[i] = new Combination();
         }
 
@@ -52,7 +47,7 @@ internal class HandDivider
 
     private void Divider(
         GameState gameState,
-        List<Tile>[] handState,
+        Tile[][] handState,
         Combination currentPair,
         Combination[] combinations,
         int depthIndex,
@@ -81,7 +76,7 @@ internal class HandDivider
     }
 
     private static bool TryGetSequenceIndexes(
-        List<Tile> tiles,
+        Tile[] tiles,
         out int[] sequenceIndexes)
     {
         var initialElementIndex = 0;
@@ -101,7 +96,8 @@ internal class HandDivider
                 sequenceIndexesIndex++;
             }
         } while (tiles[initialElementIndex].TileId == tiles[nextElemetIndex].TileId
-                 && ++nextElemetIndex < tiles.Count
+                 && tiles[nextElemetIndex] != null
+                 && ++nextElemetIndex < tiles.Length
                  && sequenceIndexesIndex < 3);
 
         return sequenceIndexesIndex == 3;
@@ -138,12 +134,12 @@ internal class HandDivider
         return tiles[initialTileIndex].TileId == tiles[initialTileIndex + 1].TileId;
     }
 
-    private static bool IsTriplet(List<Tile> tiles)
+    private static bool IsTriplet(Tile[] tiles)
     {
         return tiles[0].TileId == tiles[1].TileId && tiles[0].TileId == tiles[2].TileId;
     }
 
-    private static bool IsKan(List<Tile> tiles)
+    private static bool IsKan(Tile[] tiles)
     {
         return tiles[0].TileId == tiles[1].TileId && tiles[0].TileId == tiles[2].TileId &&
                tiles[0].TileId == tiles[3].TileId;
