@@ -4,8 +4,8 @@ using Domain.Models;
 
 public interface IBaseHandEvaluator
 {
-    List<Yaku> Run(
-        GameState state,
+    List<Yaku> Run(GameState state,
         Combination[] closedHandCombinations,
-        Combination currentPair);
+        Combination currentPair,
+        int playerId);
 }

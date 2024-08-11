@@ -13,9 +13,11 @@ internal class HandDivider
         _baseHandEvaluator = baseHandEvaluator;
     }
 
-    public void Run(GameState gameState)
+    public void Run(
+        GameState gameState,
+        int playerId)
     {
-        var playerHand = gameState.PlayerHand;
+        var playerHand = gameState.PlayerStates[playerId].Hand;
         var currentPair = new Combination();
         var pairsIndexes = FindPairsIndexes(playerHand.CloseTiles);
 
@@ -44,7 +46,7 @@ internal class HandDivider
         {
             currentPair.SetCombination(CombinationType.Pair, playerHand.CloseTiles[pairsIndex]);
             playerHand.CloseTiles.TakeNonAlloc(handState[0], pairsIndex, 2);
-            Divider(gameState, handState, currentPair, combinations, 0, escapeDepthLevel);
+            Divider(gameState, handState, currentPair, combinations, 0, escapeDepthLevel, playerId);
         }
     }
 
@@ -54,11 +56,12 @@ internal class HandDivider
         Combination currentPair,
         Combination[] combinations,
         int depthIndex,
-        int escapeDepthLevel)
+        int escapeDepthLevel,
+        int playerId)
     {
         if (depthIndex == escapeDepthLevel)
         {
-            CheckHand(combinations, gameState, currentPair);
+            CheckHand(combinations, gameState, currentPair, playerId);
             return;
         }
 
@@ -66,14 +69,14 @@ internal class HandDivider
         {
             combinations[depthIndex].SetCombination(CombinationType.Triplet, handState[depthIndex][0]);
             handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], 0, 3);
-            Divider(gameState, handState, currentPair, combinations, depthIndex + 1, escapeDepthLevel);
+            Divider(gameState, handState, currentPair, combinations, depthIndex + 1, escapeDepthLevel, playerId);
         }
 
-        if (TryGetSequenceIndexes(handState[depthIndex], out int[] sequenceIndexes))
+        if (TryGetSequenceIndexes(handState[depthIndex], out var sequenceIndexes))
         {
             combinations[depthIndex].SetCombination(CombinationType.Sequence, handState[depthIndex][0]);
             handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], sequenceIndexes);
-            Divider(gameState, handState, currentPair, combinations, depthIndex + 1, escapeDepthLevel);
+            Divider(gameState, handState, currentPair, combinations, depthIndex + 1, escapeDepthLevel, playerId);
         }
     }
 
@@ -104,12 +107,12 @@ internal class HandDivider
         return sequenceIndexesIndex == 3;
     }
 
-    private void CheckHand(
-        Combination[] combinations,
+    private void CheckHand(Combination[] combinations,
         GameState gameState,
-        Combination currentPair)
+        Combination currentPair,
+        int playerId)
     {
-        _baseHandEvaluator.Run(gameState, combinations, currentPair);
+        _baseHandEvaluator.Run(gameState, combinations, currentPair, playerId);
     }
 
     private static List<int> FindPairsIndexes(List<Tile> tiles)

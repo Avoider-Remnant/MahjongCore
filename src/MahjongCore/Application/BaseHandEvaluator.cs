@@ -8,37 +8,42 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 {
     #region Interface
 
+    public void CalculateDoras(GameState state)
+    {
+        throw new NotImplementedException();
+    }
+
     public List<Yaku> Run(
         GameState state,
         Combination[] combinations,
-        Combination currentPair)
+        Combination currentPair,
+        int playerId)
     {
         var result = new List<Yaku>();
 
-        var isOpenHand = state.PlayerHand.OpenTiles.Count > 0;
+        var playerState = state.PlayerStates[playerId];
 
-        // var isBonusForClosedHand = false;
-        //check for open yaku
+        var isClosedHand = playerState.Hand.OpenTiles.Count == 0;
 
-        if (IsHaitei(combinations, state))
+        if (IsHaitei(state, playerState))
         {
             result.Add(new Yaku { Name = "Haitei", Han = 1 });
         }
-        else if (IsHoutei(combinations, state))
+        else if (IsHoutei(state, playerState))
         {
             result.Add(new Yaku { Name = "Hoitei", Han = 1 });
         }
-        else if (IsRinshanKaihou(state))
+        else if (IsRinshanKaihou(state, playerState))
         {
             result.Add(new Yaku { Name = "RinshanKaihou", Han = 1 });
         }
 
-        if (IsChanKan(state))
+        if (IsChanKan(state, playerState))
         {
             result.Add(new Yaku { Name = "ChanKan", Han = 1 });
         }
 
-        if (IsTanyao(combinations, state))
+        /*if (IsTanyao(combinations, state))
         {
             result.Add(new Yaku { Name = "Tanyao", Han = 1 });
         }
@@ -46,7 +51,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         if (IsYakuhai(combinations, state))
         {
             result.Add(new Yaku { Name = "Yakuhai", Han = 1 });
-        }
+        }*/
 
         if (IsChantaiyao(state))
         {
@@ -148,7 +153,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
             result.Add(new Yaku { Name = "Suukantsu ", Han = 6 });
         }
 
-        if (isOpenHand) return result;
+        if (!isClosedHand) return result;
 
         if (IsMenzenTsumo(state))
         {
@@ -169,7 +174,6 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         {
             result.Add(new Yaku { Name = "Pinfu", Han = 1 });
         }
-
 
         if (IsIipeikou(state))
         {
@@ -233,10 +237,45 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     #region Private(s)
 
-    private void CalculateDoras(GameState state)
+    // Win by drawing the last tile from the live wall.
+    private bool IsHaitei(
+        GameState gameState,
+        PlayerState playerState)
     {
-        throw new NotImplementedException();
+        return gameState.RoundWindId != playerState.LastCallRound
+               && gameState.LiveWallCount == 0;
     }
+
+    // Win with the very last discarded tile.
+    private bool IsHoutei(
+        GameState gameState,
+        PlayerState playerState)
+    {
+        return gameState.RoundWindId == playerState.LastCallRound
+               && playerState.LastCall == CallType.Ron
+               && gameState.LiveWallCount == 0;
+    }
+
+    // Win with a tile from the dead wall - i.e., win by the tile drawn after a kan.
+    private bool IsRinshanKaihou(
+        GameState gameState,
+        PlayerState playerState)
+    {
+        return gameState.RoundWindId == playerState.LastCallRound
+               && playerState.LastCall is CallType.AddedKan
+                   or CallType.OpenKan
+                   or CallType.ClosedKan;
+    }
+
+    //Win with a tile used for an opponent's added kan. Essentially, the tile needed to complete a kan is stolen to complete a winning hand.
+    private bool IsChanKan(
+        GameState gameState,
+        PlayerState playerState)
+    {
+        return gameState.RoundWindId == playerState.LastCallRound
+               && playerState.LastCall is CallType.ChanCan;
+    }
+
 
     private bool IsNagashi(GameState state)
     {
@@ -416,11 +455,11 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsYakuhai(Combination[] combinations,
+    /*private bool IsYakuhai(Combination[] combinations,
         GameState state)
     {
         //A hand with at least one group of dragon tiles, seat wind, or round wind tiles. Each group is worth 1 han.
-        bool isNeededHonor = false;
+        var isNeededHonor = false;
         foreach (Tile tile in state.PlayerHand.AllTiles)
         {
             if (tile.TileId == state.SeatWindId || tile.TileId == state.RoundWindId || tile.IsDragon)
@@ -443,69 +482,11 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         }
 
         return IsHandComplete(combinations);
-    }
-
-    private bool IsChanKan(GameState state)
-    {
-        throw new NotImplementedException();
-    }
-
-    private bool IsRinshanKaihou(GameState state)
-    {
-        // Win with a tile from the dead wall - i.e., win by the tile drawn after a kan.
-        throw new NotImplementedException();
-    }
-
-    private bool IsHoutei(Combination[] combinations,
-        GameState state)
-    {
-        // Win with the very last discarded tile.
-        return state.LiveWallCount == 0 && state.timeFromLastCall == 0 && IsHandComplete(combinations);
-    }
-
-    private bool IsHaitei(Combination[] combinations,
-        GameState state)
-    {
-        // Win by drawing the last tile from the live wall.
-        return state.LiveWallCount == 0 && state.timeFromLastCall > 1 && IsHandComplete(combinations);
-    }
+    }*/
 
     private bool IsPinfu(GameState state)
     {
         throw new NotImplementedException();
-    }
-
-    private bool IsHandComplete(Combination[] combinations)
-    {
-        // rewrite using game state etc
-        int pairs = 0;
-        int triplets = 0;
-        foreach (Combination comb in combinations)
-        {
-            if (comb.Type == CombinationType.Triplet || comb.Type == CombinationType.Sequence)
-                triplets++;
-            else if (comb.Type == CombinationType.Pair)
-                pairs++;
-            else break;
-        }
-
-        return pairs == 1 && triplets == 4;
-    }
-
-    private void CopyTilesWithoutPair(List<Tile> tiles,
-        List<Tile> remainingTiles,
-        int pairIndex)
-    {
-        for (int i = 0; i < tiles.Count; i++)
-        {
-            if (i == pairIndex)
-            {
-                i++;
-                continue;
-            }
-
-            remainingTiles.Add(tiles[i]);
-        }
     }
 
     #endregion

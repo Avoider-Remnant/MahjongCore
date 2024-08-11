@@ -12,4 +12,5 @@ public enum CallType
     OpenKan = 5,
     Tsumo = 6,
     Ron = 7,
+    ChanCan
 }

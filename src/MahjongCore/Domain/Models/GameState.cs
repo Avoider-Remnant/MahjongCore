@@ -2,9 +2,9 @@
 
 public class GameState
 {
-    public Hand PlayerHand { get; set; }
+    public int RoundId { get; set; }
 
-    public int timeFromLastCall { get; set; }
+    public List<PlayerState> PlayerStates { get; set; } = new();
 
     public int LiveWallCount { get; set; }
 
