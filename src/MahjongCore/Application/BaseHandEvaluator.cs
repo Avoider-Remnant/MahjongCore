@@ -27,7 +27,10 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
         var allHandCombinations = playerState.Hand.OpenCombinations;
         allHandCombinations.AddRange(closeHandCombinations);
-
+        
+        //to discuss
+        allHandCombinations = allHandCombinations.OrderBy(c => c.InitialTile).ToList();
+        
         if (IsHaitei(state, playerState))
         {
             result.Add(new Yaku { Name = "Haitei", Han = 1 });
@@ -51,7 +54,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
             result.Add(new Yaku { Name = "Tanyao", Han = 1 });
         }
 
-        if (IsYakuhai(allHandCombinations, state, out byte hanCount))
+        if (IsYakuhai(allHandCombinations, state, out var hanCount))
         {
             result.Add(new Yaku { Name = "Yakuhai", Han = hanCount });
         }
@@ -60,13 +63,13 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         {
             result.Add(new Yaku { Name = "Chantaiyao", Han = 2 });
         }
-
-        if (IsSanshoku(state))
+        
+        if (IsSanshoku(allHandCombinations))
         {
             result.Add(new Yaku { Name = "Sanshoku", Han = 2 });
         }
 
-        if (IsIttsu(state))
+        if (IsIttsu(allHandCombinations))
         {
             result.Add(new Yaku { Name = "Ittsu", Han = 2 });
         }
@@ -75,28 +78,25 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         {
             result.Add(new Yaku { Name = "ToiToi", Han = 2 });
         }
-
-        if (IsSanankou(state))
+        
+        // to discuss
+        if (IsSanankou(closeHandCombinations))
         {
             result.Add(new Yaku { Name = "Sanankou", Han = 2 });
         }
-
-        if (IsSanshoku(state))
-        {
-            result.Add(new Yaku { Name = "Sanshoku", Han = 2 });
-        }
-
+        
+        // 3 time kans how to work with them?
         if (IsSankantsu(state))
         {
             result.Add(new Yaku { Name = "Sankantsu", Han = 2 });
         }
 
-        if (IsHonroutou(state))
+        if (IsHonroutou(allHandCombinations))
         {
             result.Add(new Yaku { Name = "Honroutou", Han = 2 });
         }
 
-        if (IsShousangen(state))
+        if (IsShousangen(allHandCombinations))
         {
             result.Add(new Yaku { Name = "Shousangen", Han = 2 });
         }
@@ -278,8 +278,180 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         return gameState.RoundWindId == playerState.LastCallRound
                && playerState.LastCall is CallType.ChanCan;
     }
+    
+    //A hand composed of only tiles that are numbered from 2 - 8. (In other words, a hand with no 1's, 9's, or honors.)
+    private bool IsTanyao(PlayerState playerState)
+    {
+        return playerState.Hand.AllTiles
+            .All(tile => tile is { IsTerminal: false, IsHonor: false });
+    }
+    
+    //A hand with at least one group of dragon tiles, seat wind, or round wind tiles. Each group is worth 1 han.
+    private bool IsYakuhai(
+        List<Combination> allHandCombinations,
+        GameState state,
+        out byte hanCount)
+    {
+        hanCount = 0;
+        foreach (var combination in allHandCombinations)
+        {
+            if (combination.InitialTile!.TileId == state.SeatWindId)
+                hanCount++;
+            if (combination.InitialTile.TileId == state.RoundWindId)
+                hanCount++;
+            if (combination.InitialTile.IsDragon)
+                hanCount++;
+        }
+        return hanCount == 0;
+    }
+    
+    
+    // All tile groups, and the pair, contain at least 1 terminal or honor.
+    private bool IsChantaiyao(
+        List<Combination> allHandCombinations,
+        Combination correctPair)
+    {
+        //kans?
+        /*foreach (var combination in allHandCombinations.Where(c => c.Type == CombinationType.Sequence))
+        {
+            if (!combination.InitialTile!.IsTerminal && combination.InitialTile.Value + 2 != 9)
+                return false;
+        }
+        foreach (var combination in allHandCombinations.Where(c => c.Type == CombinationType.Triplet))
+        {
+            if (!combination.InitialTile!.IsTerminal && !combination.InitialTile.IsHonor)
+                return false;
+        }*/
 
+        var groups = allHandCombinations
+            .Where(c => c.Type is CombinationType.Sequence or CombinationType.Triplet)
+            .All(c => c.InitialTile is { IsTerminal: true, IsHonor: true });
+        
+        var pair = correctPair.InitialTile.IsHonor || correctPair.InitialTile.IsTerminal;
+        
+        return pair && groups;
+    }
+    
+    private bool IsSanshoku(List<Combination> allHandCombinations)
+    {
+        var amount = allHandCombinations.Count(c => c.Type is CombinationType.Sequence);
+        if (amount < 3)
+            return false;
+        
+        var isCanSkipSequence = amount > 3;
+        
+        var sequences = new List<Combination>();
 
+        foreach (var combination in allHandCombinations.Where(c=>c.Type is CombinationType.Sequence))
+        {
+            if (sequences.Count == 0)
+            {
+                sequences.Add(combination);
+                continue;
+            }
+
+            if (sequences
+                .TrueForAll(c => 
+                    c.InitialTile!.Value == combination.InitialTile.Value
+                    && c.InitialTile!.Suit != combination.InitialTile.Suit)) 
+                continue;
+            
+            //if sequences more than 3 and this first comparison
+            if (isCanSkipSequence && sequences.Count == 1)
+            {
+                isCanSkipSequence = false;
+                sequences.Clear();
+                sequences.Add(combination);
+            }
+            else
+            {
+                return false;
+            }
+            
+        }
+        return true;
+    }
+    
+    // a single suit "straight" of 123456789, similar to the poker hand
+    private bool IsIttsu(List<Combination> allHandCombinations)
+    {
+        var amount = allHandCombinations.Count(c => c.Type is CombinationType.Sequence);
+        if (amount < 3)
+            return false;
+        
+        var isCanSkipSequence = amount > 3;
+        
+        var sequences = new List<Combination>();
+        
+        foreach (var combination in allHandCombinations.Where(c=>c.Type is CombinationType.Sequence))
+        {
+            if (sequences.Count == 0)
+            {
+                sequences.Add(combination);
+                continue;
+            }
+
+            if (sequences[^1].InitialTile.Suit == combination.InitialTile.Suit
+                && sequences[^1].InitialTile.TileId + 3 == combination.InitialTile.TileId)
+            {
+                sequences.Add(combination);
+                continue;
+            }
+
+            //if sequences more than 3 and this first comparison
+            if (isCanSkipSequence && sequences.Count == 1)
+            {
+                isCanSkipSequence = false;
+                sequences.Clear();
+                sequences.Add(combination);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    
+    // The entire hand is composed of triplets.
+    private bool IsToiToi(List<Combination> allHandCombinations)
+    {
+        return allHandCombinations.TrueForAll(combination => combination.Type is CombinationType.Triplet);
+    }
+    
+    // three concealed triplets 
+    private bool IsSanankou(Combination[] closedCombinations)
+    {
+        return closedCombinations.Count(c => c.Type == CombinationType.Triplet) >= 3;
+    }
+    
+    //To score honroutou, the hand must contain only honors and terminals
+    private bool IsHonroutou(List<Combination> allHandCombinations)
+    {
+        return allHandCombinations.TrueForAll(c => c.InitialTile.IsTerminal || c.InitialTile.IsHonor);
+    }
+    
+    private bool IsShousangen(List<Combination> allHandCombinations)
+    {
+        var amountOfPairs = 0;
+        var amountOfTriplets = 0;
+        foreach (var combination in allHandCombinations.Where(c=>c.InitialTile.IsDragon))
+        {
+            switch (combination.Type)
+            {
+                case CombinationType.Pair:
+                    amountOfPairs++;
+                    break;
+                case CombinationType.Triplet:
+                    amountOfTriplets++;
+                    break;
+            }
+        }
+
+        return amountOfPairs == 1 && amountOfTriplets == 2;
+    }
+    
     private bool IsNagashi(GameState state)
     {
         throw new NotImplementedException();
@@ -400,16 +572,8 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsShousangen(GameState state)
-    {
-        throw new NotImplementedException();
-    }
 
-    private bool IsHonroutou(GameState state)
-    {
-        throw new NotImplementedException();
-    }
-
+    
     private bool IsChiitoitsu(GameState state)
     {
         throw new NotImplementedException();
@@ -419,67 +583,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
     {
         throw new NotImplementedException();
     }
-
-    private bool IsSanankou(GameState state)
-    {
-        throw new NotImplementedException();
-    }
-
-    // The entire hand is composed of triplets.
-    private bool IsToiToi(List<Combination> allHandCombinations)
-    {
-        return allHandCombinations.All(combination => combination.Type == CombinationType.Triplet);
-    }
-
-    private bool IsIttsu(GameState state)
-    {
-        throw new NotImplementedException();
-    }
-
-    private bool IsSanshoku(GameState state)
-    {
-        throw new NotImplementedException();
-    }
-
-    // All tile groups, and the pair, contain at least 1 terminal or honor.
-    private bool IsChantaiyao(List<Combination> allHandCombinations, Combination correntPair)
-    {
-        foreach (var combination in allHandCombinations.Where(c => c.Type == CombinationType.Sequence))
-        {
-            if (!combination.InitialTile.IsTerminal && combination.InitialTile.Value + 2 != 9)
-                return false;
-        }
-        foreach (var combination in allHandCombinations.Where(c => c.Type == CombinationType.Triplet))
-        {
-            if (!combination.InitialTile.IsTerminal && !combination.InitialTile.IsHonor)
-                return false;
-        }
-
-        return correntPair.InitialTile.IsHonor || correntPair.InitialTile.IsTerminal;
-    }
-
-    //A hand with at least one group of dragon tiles, seat wind, or round wind tiles. Each group is worth 1 han.
-    private bool IsYakuhai(List<Combination> allHandCombinations, GameState state, out byte hanCount)
-    {
-        hanCount = 0;
-        foreach (var combination in allHandCombinations)
-        {
-            if (combination.InitialTile.TileId == state.SeatWindId)
-                hanCount++;
-            if (combination.InitialTile.TileId == state.RoundWindId)
-                hanCount++;
-            if (combination.InitialTile.IsDragon)
-                hanCount++;
-        }
-        return hanCount == 0;
-    }
-
-    //A hand composed of only tiles that are numbered from 2 - 8. (In other words, a hand with no 1's, 9's, or honors.)
-    private bool IsTanyao(PlayerState playerState)
-    {
-        return playerState.Hand.AllTiles.All(tile => !tile.IsTerminal && !tile.IsHonor);
-    }
-
+    
     private bool IsPinfu(GameState state)
     {
         throw new NotImplementedException();

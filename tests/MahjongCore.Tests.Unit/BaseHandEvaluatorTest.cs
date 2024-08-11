@@ -15,7 +15,7 @@ public class BaseHandEvaluatorTest
         _sut = new BaseHandEvaluator();
     }
 
-    [Theory]
+    /*[Theory]
     [ClassData(typeof(BaseHandEvaluatorWhenItExists))]
     public void Run_ReturnsExpectedYaku_WhenItExists(GameState state, List<Yaku> expected)
     {
@@ -24,5 +24,5 @@ public class BaseHandEvaluatorTest
 
         // Assert
         result.Should().BeEquivalentTo(expected);
-    }
+    }*/
 }

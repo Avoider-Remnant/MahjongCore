@@ -3,9 +3,9 @@
 public enum SuitType
 {
     None = -1,
-    Dot = 0,
-    Bamboo = 10,
-    Symbol = 20,
+    Pinzu  = 0,
+    Souzu  = 10,
+    Manzu = 20,
     Wind = 30,
     Dragon = 34
 }
