@@ -3,13 +3,15 @@
 using Domain.Models;
 using System.Collections.Generic;
 using Domain.Enums;
-using System.Security.Cryptography;
 
 public class BaseHandEvaluator : IBaseHandEvaluator
 {
     #region Interface
 
-    public List<Yaku> Run(GameState state, List<Combination> closedHandCombinations, Combination currentPair)
+    public List<Yaku> Run(
+        GameState state,
+        Combination[] combinations,
+        Combination currentPair)
     {
         var result = new List<Yaku>();
 
@@ -230,6 +232,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
     #endregion
 
     #region Private(s)
+
     private void CalculateDoras(GameState state)
     {
         throw new NotImplementedException();
@@ -380,7 +383,8 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsToiToi(List<Combination> combinations, GameState state)
+    private bool IsToiToi(Combination[] combinations,
+        GameState state)
     {
         // The entire hand is composed of triplets.
         int pairs = 0;
@@ -412,7 +416,8 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsYakuhai(List<Combination> combinations, GameState state)
+    private bool IsYakuhai(Combination[] combinations,
+        GameState state)
     {
         //A hand with at least one group of dragon tiles, seat wind, or round wind tiles. Each group is worth 1 han.
         bool isNeededHonor = false;
@@ -428,7 +433,8 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         return isNeededHonor && IsHandComplete(combinations);
     }
 
-    private bool IsTanyao(List<Combination> combinations, GameState state)
+    private bool IsTanyao(Combination[] combinations,
+        GameState state)
     {
         //A hand composed of only tiles that are numbered from 2 - 8. (In other words, a hand with no 1's, 9's, or honors.)
         foreach (Tile tile in state.PlayerHand.AllTiles)
@@ -450,13 +456,15 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsHoutei(List<Combination> combinations, GameState state)
+    private bool IsHoutei(Combination[] combinations,
+        GameState state)
     {
         // Win with the very last discarded tile.
         return state.LiveWallCount == 0 && state.timeFromLastCall == 0 && IsHandComplete(combinations);
     }
 
-    private bool IsHaitei(List<Combination> combinations, GameState state)
+    private bool IsHaitei(Combination[] combinations,
+        GameState state)
     {
         // Win by drawing the last tile from the live wall.
         return state.LiveWallCount == 0 && state.timeFromLastCall > 1 && IsHandComplete(combinations);
@@ -467,7 +475,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         throw new NotImplementedException();
     }
 
-    private bool IsHandComplete(List<Combination> combinations)
+    private bool IsHandComplete(Combination[] combinations)
     {
         // rewrite using game state etc
         int pairs = 0;
@@ -484,7 +492,9 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         return pairs == 1 && triplets == 4;
     }
 
-    private void CopyTilesWithoutPair(List<Tile> tiles, List<Tile> remainingTiles, int pairIndex)
+    private void CopyTilesWithoutPair(List<Tile> tiles,
+        List<Tile> remainingTiles,
+        int pairIndex)
     {
         for (int i = 0; i < tiles.Count; i++)
         {
@@ -493,6 +503,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
                 i++;
                 continue;
             }
+
             remainingTiles.Add(tiles[i]);
         }
     }
