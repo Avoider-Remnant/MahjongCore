@@ -11,7 +11,7 @@ namespace MahjongCore.Application.Utils
     {
         public static void TakeNonAlloc(this List<Tile> original, List<Tile> result, int skipFromIndex, int skippedcount)
         {
-
+            result.Clear();
             for (int i = 0; i < original.Count && j < result.Count; i++)
             {
                 if (i == skipFromIndex)
@@ -26,6 +26,7 @@ namespace MahjongCore.Application.Utils
         public static void TakeNonAlloc(this List<Tile> original, List<Tile> result, int[] skipedIndexs)
         {
             int k = 0;
+            result.Clear();
             for (int i = 0; i < original.Count && j < result.Count; i++)
             {
                 if (i == skipedIndexs[k])

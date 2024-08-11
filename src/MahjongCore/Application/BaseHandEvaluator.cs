@@ -9,7 +9,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 {
     #region Interface
 
-    public List<Yaku> Run(List<Combination> combinations, GameState state)
+    public List<Yaku> Run(GameState state, List<Combination> closedHandCombinations, Combination currentPair)
     {
         var result = new List<Yaku>();
 
@@ -22,7 +22,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
         {
             result.Add(new Yaku { Name = "Haitei", Han = 1 });
         }
-        else if (IsHoutei(combinations,state))
+        else if (IsHoutei(combinations, state))
         {
             result.Add(new Yaku { Name = "Hoitei", Han = 1 });
         }
@@ -61,7 +61,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
             result.Add(new Yaku { Name = "Ittsu", Han = 2 });
         }
 
-        if (IsToiToi(combinations,state))
+        if (IsToiToi(combinations, state))
         {
             result.Add(new Yaku { Name = "ToiToi", Han = 2 });
         }
@@ -230,6 +230,10 @@ public class BaseHandEvaluator : IBaseHandEvaluator
     #endregion
 
     #region Private(s)
+    private void CalculateDoras(GameState state)
+    {
+        throw new NotImplementedException();
+    }
 
     private bool IsNagashi(GameState state)
     {
@@ -465,6 +469,7 @@ public class BaseHandEvaluator : IBaseHandEvaluator
 
     private bool IsHandComplete(List<Combination> combinations)
     {
+        // rewrite using game state etc
         int pairs = 0;
         int triplets = 0;
         foreach (Combination comb in combinations)

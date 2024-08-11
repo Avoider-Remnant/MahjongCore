@@ -12,30 +12,31 @@ namespace MahjongCore.Application
 {
     internal class HandDivider
     {
-        private Combination CurrentPair = new Combination();
-        private List<List<Combination>> FullHand = new();
-        public void Run(Hand playerHand)
+        IBaseHandEvaluator baseHandEvaluator;
+        public void Run(GameState gameState)
         {
+            Hand playerHand = gameState.PlayerHand;
+            Combination CurrentPair = new Combination();
             List<int> pairsIndexes = FindPairsIndexes(playerHand.CloseTiles);
 
             // TODO class field insted of using "out" 
             if (pairsIndexes.Count == 0) return;
             if (pairsIndexes.Count == 7)
             {
-                Combination[] allPairs = new Combination[7];
-                foreach (int pairIndex in pairsIndexes)
-                    allPairs[pairIndex] = new Combination(CombinationType.Pair, playerHand.CloseTiles[pairIndex], false);
-                CheckHand(allPairs, playerHand);
+                // only one yaku separate metod
+                //Combination[] allPairs = new Combination[7];
+                //foreach (int pairIndex in pairsIndexes)
+                //   allPairs[pairIndex] = new Combination(CombinationType.Pair, playerHand.CloseTiles[pairIndex], false);
+                //CheckHand(allPairs, playerHand);
                 return;
             }
 
-            List<Tile>[] handState = new List<Tile>[4];
+            List<Tile>[] handState = new List<Tile>[4]; // use arr
             Combination[] combinations = new Combination[4];
-
+            byte escapeDepthLevel = playerHand.CloseTiles.Length / 3;
             for (int i = 0; i < 4; i++)
             {
                 handState[i] = new();
-                // use arr 
                 combinations[i] = new Combination();
             }
 
@@ -43,136 +44,62 @@ namespace MahjongCore.Application
             {
                 CurrentPair.SetCombination(CombinationType.Pair, playerHand.CloseTiles[pairsIndex]);
                 playerHand.CloseTiles.TakeNonAlloc(handState[0], pairsIndex, 2);
-                Divider(handState, combinations, 0, playerHand);
+                Divider(handState, combinations, 0, gameState, CurrentPair, escapeDepthLevel);
             }
         }
 
-        private void Divider(List<Tile>[] handState, Combination[] combinations, int depthIndex, Hand playerHand)
+        private void Divider(List<Tile>[] handState, Combination[] combinations, int depthIndex, Hand playerHand, byte escapeDepthLevel)
         {
-            if (depthIndex == handState.Length || handState[depthIndex].Count < 3)
+            if (depthIndex == escapeDepthLevel)
             {
-                CheckHand(combinations, playerHand);
-                handState[depthIndex - 1].Clear();
-                combinations[depthIndex - 1].Clear();
+                CheckHand(combinations, gameState, CurrentPair);
                 return;
             }
 
-            if (handState[depthIndex].Count > 3 && IsKan(handState[depthIndex]))
-            {
-                combinations[depthIndex].SetCombination(CombinationType.Kan, handState[depthIndex][0]);
-                handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], 0, 4);
-                Divider(handState, combinations, depthIndex + 1, playerHand);
-            }
             if (IsTriplet(handState[depthIndex]))
             {
                 combinations[depthIndex].SetCombination(CombinationType.Triplet, handState[depthIndex][0]);
                 handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], 0, 3);
-                Divider(handState, combinations, depthIndex + 1, playerHand);
+                Divider(handState, combinations, depthIndex + 1, playerHand, escapeDepthLevel);
             }
             if (TryGetSequenceIndexes(handState[depthIndex], out int[] sequenceIndexes))
             {
                 combinations[depthIndex].SetCombination(CombinationType.Sequence, handState[depthIndex][0]);
                 handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], sequenceIndexes);
-                Divider(handState, combinations, depthIndex + 1, playerHand);
+                Divider(handState, combinations, depthIndex + 1, playerHand, escapeDepthLevel);
             }
-
-
-
-            /*
-            if (IsKan(handState[depthIndex]))
-            {
-                SetCombination(combinations[depthIndex], handState[depthIndex], 4);
-
-                if (depthIndex == 3)
-                {
-                    CheckHand();
-                }
-                else
-                {
-                    handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], 0, 4);
-                    Divider(ref handState, ref combinations, depthIndex + 1);
-                }
-
-            }
-
-            if (IsTriplet(handState[depthIndex]))
-            {
-                SetCombination(combinations[depthIndex], handState[depthIndex], 3);
-
-                if (depthIndex == 3)
-                {
-                    CheckHand();
-                }
-                else
-                {
-                    handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], 0, 3);
-                    Divider(ref handState, ref combinations, depthIndex + 1);
-                }
-
-            }
-
-            if (TryGetSequenceIndexes(handState[depthIndex], out int[] sequenceIndexes))
-            {
-                SetCombination(combinations[depthIndex], handState[depthIndex], sequenceIndexes);
-
-                if (depthIndex == 3)
-                {
-                    CheckHand();
-                }
-                else
-                {
-                    handState[depthIndex].TakeNonAlloc(handState[depthIndex + 1], sequenceIndexes);
-                    Divider(ref handState, ref combinations, depthIndex + 1);
-                }
-
-            }
-            */
         }
 
         private static bool TryGetSequenceIndexes(List<Tile> tiles, out int[] sequenceIndexes)
         {
-            int initialIndex = 0;
-            int nextIndex = 1;
+            int initialElementIndex = 0;
+            int nextElemetIndex = 1;
             int sequenceIndexesIndex = 1;
 
             sequenceIndexes = new int[3];
 
-            if (tiles[initialIndex].IsHonor) return false;
+            if (tiles[initialElementIndex].IsHonor) return false;
 
             do
             {
-                if (tiles[initialIndex].TileId + 1 == tiles[nextIndex].TileId)
+                if (tiles[initialElementIndex].TileId + 1 == tiles[nextElemetIndex].TileId)
                 {
-                    sequenceIndexes[sequenceIndexesIndex] = nextIndex;
-                    initialIndex++;
+                    sequenceIndexes[sequenceIndexesIndex] = nextElemetIndex;
+                    initialElementIndex = nextElemetIndex;
                     sequenceIndexesIndex++;
                 }
             }
-            while (tiles[initialIndex].TileId == tiles[nextIndex].TileId && ++nextIndex < tiles.Count && sequenceIndexesIndex < 3);
-            return sequenceIndexes[1] != 0 && sequenceIndexes[2] != 0;
+            while (tiles[initialElementIndex].TileId == tiles[nextElemetIndex].TileId
+                    && ++nextElemetIndex < tiles.Count
+                    && sequenceIndexesIndex < 3);
+
+            return sequenceIndexesIndex == 3;
         }
 
-        private void CheckHand(Combination[] combinations, Hand playerHand)
+        private void CheckHand(Combination[] combinations, GameState gameState, Combination currentPair)
         {
-            List<Combination> temp = new List<Combination>();
 
-            if (CurrentPair != null)
-            {
-                temp.Add(CurrentPair);
-            }
-
-            int i = 0;
-            while (combinations[i].Type != CombinationType.None && i < combinations.Length)
-            {
-                temp.Add(combinations[i]);
-            }
-
-            foreach (Combination comb in playerHand.OpenCombinations)
-            {
-                temp.Add(comb);
-            }
-
-            FullHand.Add(temp);
+            baseHandEvaluator.Run(gameState, combinations, currentPair);
         }
 
         private static List<int> FindPairsIndexes(List<Tile> tiles)

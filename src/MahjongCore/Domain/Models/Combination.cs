@@ -27,14 +27,15 @@ public class Combination
 
     public void SetCombination( CombinationType combinationType, Tile initialTile, bool isOpenHand = false)
     {
-        this.Type = combinationType;
-        this.InitialTile = initialTile;
-        this.IsOpenHand = isOpenHand;
+        Type = combinationType;
+        InitialTile = initialTile;
+        IsOpenHand = isOpenHand;
 
     }
 
     internal void Clear()
     {
+        //todo
         throw new NotImplementedException();
     }
 }
